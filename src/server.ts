@@ -80,6 +80,7 @@ function historial(id: string): Response {
 }
 
 const servidor = Bun.serve({
+  hostname: "0.0.0.0", // escucha en todas las interfaces (necesario dentro de Docker)
   port: enteroDeEntorno("PORT", 3000),
   idleTimeout: 255, // segundos: un turno con varias herramientas puede tardar más que el valor por defecto
   routes: {

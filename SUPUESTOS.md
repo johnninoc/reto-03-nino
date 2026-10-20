@@ -45,3 +45,13 @@
 - Una sesión solo procesa un mensaje a la vez; un segundo mensaje simultáneo recibe HTTP 409.
 - `GET /api/sessions/:id` devuelve el historial visible (mensajes del usuario y respuestas con sus toolCalls) y los tokens usados, no los mensajes internos enviados al modelo.
 - Límites del cuerpo de `/api/chat`: `sessionId` de 1 a 100 caracteres y `message` de 1 a 4000.
+- El front carga marked 18.1.1 desde jsdelivr con hash de integridad (SRI), para que el archivo del CDN no pueda cambiar sin que el navegador lo rechace.
+- En las respuestas del modelo, el HTML crudo se muestra como texto y solo se permiten enlaces http(s) (abren en otra pestaña), para que una cotización maliciosa no inyecte código en el chat.
+- Si marked no carga (sin internet), las respuestas se muestran como texto plano con un aviso.
+- El `sessionId` se genera en el navegador con `crypto.randomUUID()` (con un respaldo aleatorio si no existe); "Nueva sesión" crea otro id y limpia la pantalla. La sesión anterior queda en memoria del servidor.
+- El botón "No, cancelar" envía ese texto; como contiene "no", la salvaguarda nunca lo trata como confirmación.
+- Mientras se espera una respuesta, todos los botones y el campo de texto se desactivan; el aviso de confirmación desaparece al enviar el siguiente mensaje.
+- Enter envía y Shift+Enter hace salto de línea.
+- El contenedor corre con el usuario sin privilegios `bun` de la imagen oficial; `out/` se crea con permisos de ese usuario.
+- `bun install --production --frozen-lockfile` en Docker: solo instala zod y @anthropic-ai/sdk (bun-types y typescript son de desarrollo) y falla si el lockfile no coincide.
+- El servidor escucha siempre en `0.0.0.0` y en el puerto de `PORT` (Render lo define).

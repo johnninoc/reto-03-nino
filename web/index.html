@@ -2,10 +2,322 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>Agente Órdenes de Compra SAP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Asistente de Órdenes de Compra — Periferia IT (Reto 03)</title>
+    <script
+      src="https://cdn.jsdelivr.net/npm/marked@18.1.1/lib/marked.umd.js"
+      integrity="sha384-rATToyt6602Jnq8c7w8HZwmyOUgPL7mzxX01FBWoV48ns/EgkakGozpES+PnaYOI"
+      crossorigin="anonymous"
+    ></script>
+    <style>
+      :root {
+        --fondo: #f4f5f7;
+        --panel: #ffffff;
+        --borde: #dde1e6;
+        --texto: #1f2933;
+        --suave: #616e7c;
+        --acento: #1d4ed8;
+        --usuario: #e0e9ff;
+        --ok: #15803d;
+        --error: #b91c1c;
+        --aviso-fondo: #fef3c7;
+        --aviso-borde: #f59e0b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--fondo);
+        color: var(--texto);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        background: var(--panel);
+        border-bottom: 1px solid var(--borde);
+        padding: 12px 20px;
+      }
+      .fila-titulo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      h1 { font-size: 1.15rem; margin: 0; }
+      .sesion { font-size: 0.75rem; color: var(--suave); }
+      .rapidos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; }
+      .rapidos span { font-size: 0.8rem; color: var(--suave); margin-right: 4px; }
+      button {
+        font: inherit;
+        font-size: 0.85rem;
+        border: 1px solid var(--borde);
+        background: var(--panel);
+        border-radius: 6px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) { border-color: var(--acento); color: var(--acento); }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.primario { background: var(--acento); border-color: var(--acento); color: #fff; }
+      button.primario:hover:not(:disabled) { color: #fff; filter: brightness(1.1); }
+      main { flex: 1; overflow-y: auto; padding: 20px; }
+      .chat { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+      .mensaje { padding: 12px 16px; border-radius: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+      .usuario { background: var(--usuario); align-self: flex-end; max-width: 75%; white-space: pre-wrap; }
+      .agente { background: var(--panel); border: 1px solid var(--borde); align-self: stretch; }
+      .error { background: #fee2e2; border: 1px solid #fca5a5; color: var(--error); }
+      .agente table { border-collapse: collapse; margin: 8px 0; font-size: 0.9rem; }
+      .agente th, .agente td { border: 1px solid var(--borde); padding: 4px 10px; text-align: left; vertical-align: top; }
+      .agente th { background: var(--fondo); }
+      .agente code { background: var(--fondo); padding: 1px 4px; border-radius: 4px; font-size: 0.85em; }
+      .agente p:first-child { margin-top: 0; }
+      .agente p:last-child { margin-bottom: 0; }
+      .herramientas { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+      details { border: 1px solid var(--borde); border-radius: 6px; background: var(--fondo); font-size: 0.85rem; }
+      summary { cursor: pointer; padding: 6px 10px; }
+      summary .nombre { font-family: ui-monospace, Consolas, monospace; font-weight: 600; }
+      summary .ok { color: var(--ok); font-weight: 700; }
+      summary .fallo { color: var(--error); font-weight: 700; }
+      summary .resumen { color: var(--suave); }
+      details pre { margin: 0; padding: 8px 10px; border-top: 1px solid var(--borde); max-height: 280px; overflow: auto; font-size: 0.78rem; background: #fff; }
+      .aviso {
+        margin-top: 12px;
+        padding: 10px 14px;
+        background: var(--aviso-fondo);
+        border: 1px solid var(--aviso-borde);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .aviso strong { flex: 1; }
+      .pensando { color: var(--suave); font-style: italic; padding-left: 4px; }
+      footer { background: var(--panel); border-top: 1px solid var(--borde); padding: 12px 20px; }
+      form { max-width: 960px; margin: 0 auto; display: flex; gap: 8px; }
+      textarea {
+        flex: 1;
+        font: inherit;
+        resize: none;
+        border: 1px solid var(--borde);
+        border-radius: 8px;
+        padding: 10px 12px;
+        height: 46px;
+      }
+      textarea:focus { outline: 2px solid var(--acento); border-color: transparent; }
+    </style>
   </head>
   <body>
-    <h1>Agente Órdenes de Compra SAP</h1>
-    <p>Interfaz de chat en construcción. Mientras tanto, usa la API: <code>POST /api/chat</code> con <code>{ "sessionId", "message" }</code>.</p>
+    <header>
+      <div class="fila-titulo">
+        <div>
+          <h1>Asistente de Órdenes de Compra — Periferia IT (Reto 03)</h1>
+          <div class="sesion" id="sesion"></div>
+        </div>
+        <button id="nueva">Nueva sesión</button>
+      </div>
+      <div class="rapidos" id="rapidos"><span>Casos de prueba:</span></div>
+    </header>
+
+    <main id="scroll">
+      <div class="chat" id="chat"></div>
+    </main>
+
+    <footer>
+      <form id="formulario">
+        <textarea id="entrada" placeholder="Escribe un mensaje, por ejemplo: procesa la solicitud sol-001 (Enter envía, Shift+Enter hace salto de línea)"></textarea>
+        <button type="submit" class="primario" id="enviar">Enviar</button>
+      </form>
+    </footer>
+
+    <script>
+      const CASOS = ["sol-001", "sol-002", "sol-003", "sol-004", "sol-005", "sol-006"]
+      const chat = document.getElementById("chat")
+      const scroll = document.getElementById("scroll")
+      const entrada = document.getElementById("entrada")
+      const formulario = document.getElementById("formulario")
+      let sessionId = nuevoId()
+      let ocupado = false
+
+      // ---------- Markdown seguro ----------
+      // El HTML crudo que escriba el modelo se muestra como texto y solo se permiten enlaces http(s).
+      function escapar(texto) {
+        return String(texto).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+      }
+      if (window.marked) {
+        marked.use({
+          gfm: true,
+          renderer: {
+            html({ text }) {
+              return escapar(text)
+            },
+            link({ href, tokens }) {
+              const texto = this.parser.parseInline(tokens)
+              if (!/^https?:\/\//i.test(href)) return texto
+              return `<a href="${escapar(href)}" target="_blank" rel="noopener noreferrer">${texto}</a>`
+            },
+          },
+        })
+      }
+      function markdown(texto) {
+        return window.marked ? marked.parse(texto) : `<p style="white-space:pre-wrap">${escapar(texto)}</p>`
+      }
+
+      // ---------- Sesión ----------
+      function nuevoId() {
+        return window.crypto && crypto.randomUUID ? crypto.randomUUID() : `s-${Date.now()}-${Math.random().toString(16).slice(2)}`
+      }
+      function iniciarSesion() {
+        sessionId = nuevoId()
+        chat.innerHTML = ""
+        document.getElementById("sesion").textContent = `Sesión: ${sessionId}`
+        agregarAgente({
+          reply: "Hola. Soy el asistente de órdenes de compra. Dime qué solicitud procesar (por ejemplo **sol-004**) o usa los botones de casos de prueba.",
+          toolCalls: [],
+          needsConfirmation: false,
+        })
+      }
+
+      // ---------- Mensajes ----------
+      function bajar() {
+        scroll.scrollTop = scroll.scrollHeight
+      }
+      function agregarUsuario(texto) {
+        const div = document.createElement("div")
+        div.className = "mensaje usuario"
+        div.textContent = texto // texto del usuario siempre escapado
+        chat.appendChild(div)
+        bajar()
+      }
+      function agregarError(texto) {
+        const div = document.createElement("div")
+        div.className = "mensaje error"
+        div.textContent = texto
+        chat.appendChild(div)
+        bajar()
+      }
+      function tarjetaHerramienta(llamada) {
+        const detalle = document.createElement("details")
+        const resumen = document.createElement("summary")
+        const marca = document.createElement("span")
+        marca.className = llamada.ok ? "ok" : "fallo"
+        marca.textContent = llamada.ok ? "✓ " : "✗ "
+        const nombre = document.createElement("span")
+        nombre.className = "nombre"
+        nombre.textContent = llamada.nombre
+        const texto = document.createElement("span")
+        texto.className = "resumen"
+        texto.textContent = ` — ${llamada.resumen}`
+        resumen.append(marca, nombre, texto)
+        const args = document.createElement("pre")
+        args.textContent = JSON.stringify(llamada.args, null, 2)
+        detalle.append(resumen, args)
+        return detalle
+      }
+      function avisoConfirmacion() {
+        const aviso = document.createElement("div")
+        aviso.className = "aviso"
+        const titulo = document.createElement("strong")
+        titulo.textContent = "⚠ El agente espera tu confirmación"
+        const si = document.createElement("button")
+        si.className = "primario"
+        si.textContent = "Confirmo"
+        si.onclick = () => enviar("Confirmo")
+        const no = document.createElement("button")
+        no.textContent = "No, cancelar"
+        no.onclick = () => enviar("No, cancelar")
+        aviso.append(titulo, si, no)
+        return aviso
+      }
+      function agregarAgente(respuesta) {
+        const div = document.createElement("div")
+        div.className = "mensaje agente"
+        const cuerpo = document.createElement("div")
+        cuerpo.innerHTML = markdown(respuesta.reply || "")
+        div.appendChild(cuerpo)
+        if (respuesta.toolCalls && respuesta.toolCalls.length) {
+          const lista = document.createElement("div")
+          lista.className = "herramientas"
+          respuesta.toolCalls.forEach((llamada) => lista.appendChild(tarjetaHerramienta(llamada)))
+          div.appendChild(lista)
+        }
+        if (respuesta.needsConfirmation) div.appendChild(avisoConfirmacion())
+        chat.appendChild(div)
+        bajar()
+      }
+      function quitarAvisos() {
+        document.querySelectorAll(".aviso").forEach((aviso) => aviso.remove())
+      }
+      function mostrarPensando(visible) {
+        const existente = document.getElementById("pensando")
+        if (!visible) return existente && existente.remove()
+        const div = document.createElement("div")
+        div.id = "pensando"
+        div.className = "pensando"
+        div.textContent = "pensando…"
+        chat.appendChild(div)
+        bajar()
+      }
+      function bloquear(estado) {
+        ocupado = estado
+        document.querySelectorAll("button, textarea").forEach((el) => (el.disabled = estado))
+      }
+
+      // ---------- Envío ----------
+      async function leerError(res) {
+        try {
+          const cuerpo = await res.json()
+          return cuerpo.error || cuerpo.reply || `El servidor respondió con error ${res.status}.`
+        } catch {
+          return `El servidor respondió con error ${res.status}.`
+        }
+      }
+      async function enviar(texto) {
+        texto = texto.trim()
+        if (!texto || ocupado) return
+        quitarAvisos()
+        agregarUsuario(texto)
+        entrada.value = ""
+        bloquear(true)
+        mostrarPensando(true)
+        try {
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId, message: texto }),
+          })
+          mostrarPensando(false)
+          if (!res.ok) agregarError(await leerError(res))
+          else agregarAgente(await res.json())
+        } catch {
+          mostrarPensando(false)
+          agregarError("No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.")
+        } finally {
+          bloquear(false)
+          entrada.focus()
+        }
+      }
+
+      // ---------- Eventos ----------
+      formulario.addEventListener("submit", (evento) => {
+        evento.preventDefault()
+        enviar(entrada.value)
+      })
+      entrada.addEventListener("keydown", (evento) => {
+        if (evento.key === "Enter" && !evento.shiftKey) {
+          evento.preventDefault()
+          enviar(entrada.value)
+        }
+      })
+      document.getElementById("nueva").addEventListener("click", () => {
+        if (!ocupado) iniciarSesion()
+      })
+      CASOS.forEach((caso) => {
+        const boton = document.createElement("button")
+        boton.textContent = caso
+        boton.onclick = () =>
+          enviar(`Procesa la solicitud "${caso}". Muéstrame la OC como quedaría en SAP, qué validaciones pasó y cuáles no.`)
+        document.getElementById("rapidos").appendChild(boton)
+      })
+      iniciarSesion()
+      if (!window.marked) agregarError("No se pudo cargar el visor de Markdown; las respuestas se mostrarán como texto plano.")
+      entrada.focus()
+    </script>
   </body>
 </html>
