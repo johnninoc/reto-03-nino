@@ -1,10 +1,12 @@
 # Asistente de Órdenes de Compra — Periferia IT (Reto 03)
 
+> Nota: el plan gratuito de Render duerme tras 15 min sin uso; la primera petición puede tardar ~50 s.
+
 Agente conversacional que lee el paquete de una compra (correo, solicitud, cotización, aprobación y factura), lo valida contra los maestros con las reglas RC1–RC10, arma la orden de compra y la crea en un SAP simulado.
 Lo que no cumple se bloquea; lo dudoso se pregunta antes de crear, y las OC retroactivas quedan marcadas en `out/control.csv`.
 Chat web + backend en Bun + herramientas tipadas con zod + modelo de Anthropic.
 
-**Enlace público:** ENLACE_PUBLICO
+**Enlace público:** https://reto-03-nino.onrender.com — desplegado en Render (Docker) y probado de punta a punta el 2026-10-20: health check, `sol-004` con confirmación, `sol-002` bloqueada y reinicio de datos de demo.
 
 ## Requisitos
 
@@ -74,7 +76,7 @@ Las sesiones viven en memoria: se pierden al reiniciar el servidor.
 
 ## Despliegue (Docker en Render)
 
-El repositorio trae `Dockerfile` (imagen oficial `oven/bun:1.4.3`) y `.dockerignore`.
+El repositorio trae `Dockerfile` (imagen oficial `oven/bun:1.4.3`) y `.dockerignore`. Así está desplegado en https://reto-03-nino.onrender.com.
 
 1. En Render: **New → Web Service**, conecta el repositorio y elige el entorno **Docker**.
 2. Variables de entorno: `ANTHROPIC_API_KEY` (como secreto) y, si quieres, `MODEL`, `MAX_ITER` y `MAX_TOKENS_SESSION`. Render define `PORT` solo; el servidor lo lee y escucha en `0.0.0.0`.

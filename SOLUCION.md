@@ -106,8 +106,6 @@ La analista administrativa digita a mano en SAP cada orden de compra y verifica 
 
 ## 7. Lectura del proceso
 
-**[BORRADOR – John revisa]**
-
 El caso `sol-005` muestra el patrón que la dirección quiere medir: la cotización es del 5 de agosto, la factura del 10 y la solicitud del 27. La aprobación llegó el 28 con el texto "ya llegó la factura, por favor crear la OC para poder radicarla". La OC se usa como trámite para pagar, no como control previo a la compra.
 
 Qué le diría a la dirección:
@@ -117,8 +115,6 @@ Qué le diría a la dirección:
 - **Decisión pendiente** (fuera del alcance del reto): si después de la transición las OC retroactivas se toleran con marca o se rechazan.
 
 ## 8. Decisiones y trade-offs
-
-**[BORRADOR – John revisa]**
 
 1. **Reglas en código, no decididas por el modelo.** RC1–RC10 son funciones TypeScript deterministas, y el modelo solo orquesta y explica. *Descartado*: dejar que el modelo evalúe las reglas leyendo los maestros. Sería más flexible, pero no reproducible, difícil de auditar y expuesto a que el modelo "arregle" un monto. Con reglas en código, `demo.ts` prueba todo sin modelo y `oc_crear` puede revalidar desde las fuentes.
 2. **Haiku en vez de Sonnet.** *Descartado*: `claude-sonnet-5-5`, unas 20 veces más caro por token. Como las reglas están en código, la tarea del modelo es acotada, y Haiku la cumplió en las pruebas. Si en producción aparecen errores de orquestación, se cambia con la variable `MODEL`, sin tocar código.
@@ -150,7 +146,7 @@ El detalle está en `SUPUESTOS.md`, una línea por supuesto. Los principales:
 
 **Extras para la demo**: `oc_validar` devuelve también `reglas_cumplidas` (qué reglas pasaron), y el agente siempre lista las que pasaron y las que no. `oc_crear` responde `ya_existia: true` con un mensaje claro cuando la OC ya existía. El botón "Reiniciar datos de demo" (`POST /api/reset`) borra `out/` para repetir la demo desde la OC 4500000001.
 
-**P1 y bonus no hechos**: `out/<caso>/aprobacion.pdf`, `oc_leer_excel` y el módulo reutilizable `modulo/` (9.4). **Link público**: pendiente (ENLACE_PUBLICO); el `Dockerfile` está listo, pero la imagen no se construyó en la máquina de desarrollo porque no tiene Docker.
+**P1 y bonus no hechos**: `out/<caso>/aprobacion.pdf`, `oc_leer_excel` y el módulo reutilizable `modulo/` (9.4). **Link público**: https://reto-03-nino.onrender.com, desplegado en Render con el `Dockerfile` del repositorio. Probado de punta a punta el 2026-10-20: health check, `sol-004` con confirmación, `sol-002` bloqueada y reinicio de datos de demo.
 
 **Qué falta para producción**: el adaptador SAP real (sección 6), autenticación y límite de sesiones por usuario, sesiones y registros persistentes (hoy en memoria y en disco efímero), evidencia en PDF, pruebas automatizadas de las reglas y del ciclo, y un candado de concurrencia en la escritura de `ordenes.jsonl` y `control.csv`.
 
