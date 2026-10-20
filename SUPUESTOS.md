@@ -1,0 +1,47 @@
+# Supuestos
+
+- La lógica de negocio vive en `src/domain/` y no en `src/tools/`, porque cada export de `src/tools/oc.ts` se convierte en una herramienta `oc_<export>`.
+- `correo.json` y `solicitud.json` son obligatorios (en PRD 7.2 no son nulos): si faltan o están mal formados, `oc_leer_paquete` devuelve `{ ok: false, error }`. Cotización y aprobación ausentes se devuelven como `null` y se listan en `faltantes`.
+- La factura es opcional por diseño (solo existe en el caso retroactivo), así que su ausencia no se reporta como faltante.
+- Un JSON mal formado o un TOTAL no numérico en cualquier archivo del paquete devuelve `{ ok: false, error }` en lugar de `null`.
+- El NIT de la cotización es el que aparece en la línea que empieza por "NIT:" (no el del cliente); se guardan solo los dígitos, sin dígito de verificación.
+- Los montos de la cotización y la factura usan formato colombiano: punto = miles, coma = decimales.
+- `validez_hasta` = fecha de la cotización + días de validez, en días calendario.
+- `aprobado = true` si el cuerpo contiene "aprobado" sin importar mayúsculas (un "no aprobado" también daría true; se acepta por simplicidad, como pide el enunciado).
+- RC1 busca el proveedor por el NIT de la solicitud; si la solicitud no trae NIT, por nombre normalizado (minúsculas, sin tildes ni puntuación). El NIT de la cotización no se usa para buscar.
+- RC3 solo se evalúa si el aprobador es válido para el centro; si no lo es, ya bloquea RC2 y no se duplica el bloqueo.
+- RC4 bloquea también si el centro de costo no existe en el maestro.
+- RC6 y RC7 no derivan nada si el proveedor no existe (ya bloquea RC1).
+- RC7 es solo informativo: el valor derivado va en `derivados` y no genera confirmación.
+- RC9 compara solo la fecha (AAAA-MM-DD) del correo de aprobación, en la zona horaria del correo, contra `fecha_solicitud`; el mismo día cuenta como válido.
+- RC9 no se evalúa si no hay aprobación (ya bloquea RC2).
+- La OC tiene una sola posición (número 10), porque la solicitud trae una sola línea.
+- Unidad de la posición: "H" si la descripción menciona "hora(s)"; si no, "UN". "MES" no se infiere.
+- La descripción de la posición se recorta a 40 caracteres (sin espacios al final).
+- `sociedad` y `organizacion_compras` son las constantes "1000" del esquema; en la trazabilidad se marcan como "derivado".
+- Se agregan las fuentes de trazabilidad "correo" y "aprobacion", porque `correo_id` y los datos del aprobador no salen de solicitud, cotización ni maestros.
+- `oc_construir_payload` no construye el payload si hay bloqueos (no hay OC posible); devuelve `{ ok: false, error }` con los códigos.
+- `oc_construir_payload` calcula el sha256 de la evidencia con el mismo contenido que escribe `oc_generar_evidencia`, así que el orden en que se llamen no importa.
+- `excepciones` del payload = las confirmaciones de la validación, con `confirmado_por: null`; al crear con `confirmado=true` se llenan con "analista (sesión <id>)".
+- El archivo `aprobacion.txt` termina con una línea con el sha256; ese hash corresponde al contenido que está encima de esa línea.
+- En `oc_crear`, `payload` es opcional, para que un caso bloqueado igual deje su fila "bloqueada" en `control.csv`.
+- `oc_crear` vuelve a leer el paquete desde los fixtures y lo revalida; el payload recibido debe ser idéntico al construido desde las fuentes, si no se rechaza (así el modelo no puede alterar montos).
+- Orden en `oc_crear`: idempotencia → bloqueos → confirmaciones pendientes → payload. Un payload ausente o alterado devuelve error sin fila en `control.csv` (no es un resultado de negocio).
+- Si la OC ya existía, `oc_crear` devuelve `fecha: null`, porque `buscarOrdenPorReferencia` (interfaz fija de PRD 7.4) solo devuelve `numero_oc`.
+- En `control.csv`, `bloqueos` y `confirmaciones` son los códigos separados por "|" (ej. "RC5|RC8").
+- El SAP simulado usa como fecha de la OC la fecha UTC del día de creación (AAAA-MM-DD).
+- `bun-types` y `typescript` se instalan solo como dependencias de desarrollo, para el chequeo de tipos (`bunx tsc`); no se usan en tiempo de ejecución.
+- La comparación del payload en `oc_crear` ignora `excepciones[].confirmado_por`, porque ese campo lo llena la propia herramienta al crear.
+- Si el modelo devuelve confirmaciones, igual llama a `oc_crear` sin `confirmado` para que el intento quede como "pendiente_confirmacion" en `control.csv` (la herramienta no crea nada en ese caso).
+- El system prompt es `agent/prompt.md` + `src/knowledge/ordenes-compra.md`, unidos al arrancar el servidor; un cambio en ellos requiere reiniciar el servidor.
+- La interfaz `LlmAdapter.enviar(mensajes, herramientas)` recibe el system prompt como un mensaje con rol "sistema"; cada proveedor lo ubica donde corresponda.
+- Los bloques propios del proveedor (por ejemplo, el razonamiento del modelo) se guardan como bloques "opacos" y se reenvían sin cambios, porque la API los exige en el ciclo de herramientas.
+- Timeout de 60 s por llamada al modelo y sin reintentos automáticos (`maxRetries: 0`), para que 60 s sea de verdad el tiempo máximo de espera.
+- Tokens por sesión = entrada (incluida la caché) + salida de cada llamada al modelo. Se revisa al inicio del turno y antes de cada iteración; al superar el tope, la sesión ya no acepta mensajes.
+- Una confirmación es un mensaje que contiene alguna de las palabras sí/si, confirmo, confirmado, adelante, procede, ok o dale (sin importar mayúsculas ni tildes) y no contiene la palabra "no".
+- Si la salvaguarda fuerza `confirmado=false` y el caso no tenía confirmaciones pendientes, la OC se crea igual: un caso limpio no necesita confirmación.
+- `needsConfirmation` = en el turno, `oc_validar` devolvió un caso apto con confirmaciones u `oc_crear` respondió "requiere confirmación", y no se creó ninguna OC.
+- Al llegar al tope de iteraciones, la respuesta se arma en el servidor (sin llamar al modelo): lista las herramientas ejecutadas, dice si la OC quedó creada y pide "continúa".
+- Una sesión solo procesa un mensaje a la vez; un segundo mensaje simultáneo recibe HTTP 409.
+- `GET /api/sessions/:id` devuelve el historial visible (mensajes del usuario y respuestas con sus toolCalls) y los tokens usados, no los mensajes internos enviados al modelo.
+- Límites del cuerpo de `/api/chat`: `sessionId` de 1 a 100 caracteres y `message` de 1 a 4000.
