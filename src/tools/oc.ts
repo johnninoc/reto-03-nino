@@ -79,7 +79,7 @@ function registrarIntento(directory: string, solicitudId: string, resultado: Res
   })
 }
 
-type ResultadoCrear = { numero_oc: string; fecha: string | null; idempotente: boolean }
+type ResultadoCrear = { numero_oc: string; fecha: string | null; idempotente: boolean; ya_existia: boolean; mensaje: string }
 
 /** confirmado_por lo pone oc_crear, así que no cuenta al comparar el payload recibido con el esperado. */
 function sinConfirmador(orden: OrdenCompra): OrdenCompra {
@@ -160,7 +160,8 @@ export const crear = {
       const existente = await sap.buscarOrdenPorReferencia(solicitudId)
       if (existente) {
         registrarIntento(ctx.directory, solicitudId, "idempotente", validacion, existente.numero_oc)
-        return { data: { numero_oc: existente.numero_oc, fecha: null, idempotente: true }, resumen: `ya existía OC ${existente.numero_oc}` }
+        const mensaje = `Esta solicitud ya tiene la OC ${existente.numero_oc} creada anteriormente; no se creó una nueva (idempotencia).`
+        return { data: { numero_oc: existente.numero_oc, fecha: null, idempotente: true, ya_existia: true, mensaje }, resumen: `ya existía OC ${existente.numero_oc}` }
       }
       if (!validacion.apta) {
         registrarIntento(ctx.directory, solicitudId, "bloqueada", validacion)
@@ -180,7 +181,8 @@ export const crear = {
       const orden: OrdenCompra = { ...esperado, excepciones: esperado.excepciones.map((e) => ({ ...e, confirmado_por: confirmadoPor })) }
       const creada = await sap.crearOrden(orden)
       registrarIntento(ctx.directory, solicitudId, "creada", validacion, creada.numero_oc)
-      return { data: { ...creada, idempotente: false }, resumen: `OC ${creada.numero_oc} creada` }
+      const mensaje = `OC ${creada.numero_oc} creada en SAP.`
+      return { data: { ...creada, idempotente: false, ya_existia: false, mensaje }, resumen: `OC ${creada.numero_oc} creada` }
     })
   },
 }

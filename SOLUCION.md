@@ -69,7 +69,7 @@ La analista administrativa digita a mano en SAP cada orden de compra y verifica 
 | RC9 | `rc9_aprobacionDespuesDeSolicitud` | Confirmación | Ningún fixture lo dispara (en `sol-004` y `sol-006` la aprobación es del mismo día) |
 | RC10 | `rc10_cantidadPorPrecio` | Bloqueo | Ningún fixture lo dispara |
 
-`evaluarReglas` junta los resultados en `{ apta, bloqueos, confirmaciones, derivados, retroactiva }`; cada hallazgo trae `codigo` y un `detalle` con los valores comparados.
+`evaluarReglas` junta los resultados en `{ apta, bloqueos, confirmaciones, reglas_cumplidas, derivados, retroactiva }`; cada hallazgo trae `codigo` y un `detalle` con los valores comparados.
 
 **La más difícil: RC2 (junto con RC3).** El caso `sol-003` tiene una trampa: fvargas sí es aprobador en la empresa y su tope (COP 80.000.000) cubre los COP 74.000.000, pero lo es de CC-3030, no de CC-2020. Una validación ingenua ("¿es aprobador con tope suficiente?") lo dejaría pasar. Por eso RC2 busca al aprobador **dentro del centro de costo** de la solicitud, y RC3 solo se evalúa con ese aprobador; si no lo hay, ya bloquea RC2 y no se duplica el bloqueo.
 
@@ -148,6 +148,8 @@ El detalle está en `SUPUESTOS.md`, una línea por supuesto. Los principales:
 | HU-5 Crear la OC | Hecho | Números desde 4500000001, idempotencia y `control.csv` en cada intento |
 | HU-6 Manejo de errores | Hecho | `{ ok: false, error }` legible; errores del modelo en español; la sesión sobrevive |
 
+**Extras para la demo**: `oc_validar` devuelve también `reglas_cumplidas` (qué reglas pasaron), y el agente siempre lista las que pasaron y las que no. `oc_crear` responde `ya_existia: true` con un mensaje claro cuando la OC ya existía. El botón "Reiniciar datos de demo" (`POST /api/reset`) borra `out/` para repetir la demo desde la OC 4500000001.
+
 **P1 y bonus no hechos**: `out/<caso>/aprobacion.pdf`, `oc_leer_excel` y el módulo reutilizable `modulo/` (9.4). **Link público**: pendiente (ENLACE_PUBLICO); el `Dockerfile` está listo, pero la imagen no se construyó en la máquina de desarrollo porque no tiene Docker.
 
 **Qué falta para producción**: el adaptador SAP real (sección 6), autenticación y límite de sesiones por usuario, sesiones y registros persistentes (hoy en memoria y en disco efímero), evidencia en PDF, pruebas automatizadas de las reglas y del ciclo, y un candado de concurrencia en la escritura de `ordenes.jsonl` y `control.csv`.
@@ -169,6 +171,7 @@ El detalle está en `SUPUESTOS.md`, una línea por supuesto. Los principales:
 | El modelo altera montos o se salta reglas | `oc_crear` relee y revalida desde las fuentes y rechaza payloads distintos; la salvaguarda del servidor exige confirmación real |
 | Instrucciones maliciosas dentro de una cotización o un correo (inyección de prompt) | El modelo no puede crear sin pasar por las reglas en código; el front escapa el HTML del modelo y solo permite enlaces http(s) |
 | Gasto descontrolado de la clave con el link público | Tope de pasos por turno y de tokens por sesión. **Pendiente**: cualquiera puede abrir sesiones nuevas; en producción, autenticación o clave de acceso y límite por IP |
+| Cualquiera con el link puede borrar los datos de demo (`POST /api/reset` borra `out/`: OC simuladas, control y log) | Solo borra `out/`, nunca `fixtures/` ni código; pide confirmación en el front y se niega si hay un mensaje en proceso. En producción, este endpoint no existiría o requeriría autenticación de administrador |
 | Fuga de la clave | Solo vive en variables de entorno del backend; no aparece en el front, los logs, `/api/health` ni los mensajes de error |
 | Pérdida de datos al reiniciar (sesiones en memoria, disco efímero en Render) | Aceptable para el reto. En producción: base de datos o almacenamiento persistente para sesiones, control y log |
 | La conexión a SAP no es viable a corto plazo | Plan B de la sección 6 (archivo de carga masiva), sin cambiar el agente |

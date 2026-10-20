@@ -58,6 +58,7 @@ Debajo de cada caso aparece el detalle de cada bloqueo o confirmación (por ejem
 | `POST` | `/api/chat` | `{ sessionId, message }` → `{ reply, toolCalls: [{ nombre, args, ok, resumen }], needsConfirmation }` |
 | `GET` | `/api/sessions/:id` | `{ sessionId, tokens, historial }` con los mensajes y respuestas de la sesión |
 | `GET` | `/api/health` | `{ ok: true, provider, model }` (sin claves) |
+| `POST` | `/api/reset` | Borra solo la carpeta `out/` (OC del SAP simulado, control, log y evidencias) → `{ ok: true, mensaje }`. Responde 409 si hay un mensaje en proceso |
 | `GET` | `/` | Chat web (`web/index.html`) |
 
 Ejemplo:
@@ -68,6 +69,8 @@ curl -X POST http://localhost:3000/api/chat -H "Content-Type: application/json" 
 ```
 
 Las sesiones viven en memoria: se pierden al reiniciar el servidor.
+
+**Reiniciar la demo**: el botón "Reiniciar datos de demo" del chat (pide confirmación) llama a `POST /api/reset`, borra `out/` y abre una sesión nueva; la numeración de OC vuelve a empezar en 4500000001. No toca `fixtures/` ni las sesiones guardadas en memoria.
 
 ## Despliegue (Docker en Render)
 

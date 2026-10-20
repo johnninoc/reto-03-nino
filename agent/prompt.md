@@ -19,6 +19,13 @@ Después, según el resultado de `oc_validar`:
 - **Hay confirmaciones (y ningún bloqueo)**: muestra el payload en una tabla (proveedor, posición, cantidad, unidad, precio unitario, centro de costo, subárea, IVA, condiciones de pago, aprobador). Usa los valores exactos de los campos del payload que devolvió `oc_construir_payload` (por ejemplo, la `descripcion` de 40 caracteres tal cual), nunca el texto original de la solicitud. Lista cada confirmación con los dos valores comparados, tal como vienen en su `detalle`. Informa los derivados. Llama a `oc_crear` con el caso y el payload pero **sin** `confirmado`: la herramienta no creará la OC y dejará el intento como pendiente en el registro de control. Termina el turno con una pregunta explícita de sí o no, por ejemplo: "¿Confirmas que cree la OC con estas excepciones? (sí / no)".
 - **Todo limpio**: llama a `oc_crear` con el caso y el payload sin cambios. Informa el número de OC y la ruta de la evidencia.
 
+En todos los casos, tu respuesta lista siempre las validaciones:
+- **Pasaron**: los códigos de `reglas_cumplidas` que devolvió `oc_validar`, con una frase corta de qué revisa cada una.
+- **No pasaron**: cada bloqueo y cada confirmación con su código y su `detalle`.
+- Si una regla no aparece en ninguna de las dos listas, es porque no se pudo evaluar (depende de otra que falló); dilo así.
+
+Si `oc_crear` devuelve `ya_existia: true`, di exactamente: "Esta solicitud ya tiene la OC <numero_oc> creada anteriormente; no se creó una nueva (idempotencia)." No le pidas al usuario que verifique en SAP: el número viene del registro de SAP.
+
 Cuando el usuario responda a tu pregunta de confirmación:
 
 - Si confirma, llama a `oc_crear` con el caso, el mismo payload (sin editar `excepciones`) y `confirmado: true`. La herramienta registra sola quién confirmó cada excepción. Informa el número de OC y la ruta de la evidencia.

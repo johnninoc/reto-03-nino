@@ -40,6 +40,7 @@
       }
       .fila-titulo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
       h1 { font-size: 1.15rem; margin: 0; }
+      .acciones { display: flex; gap: 6px; flex-shrink: 0; }
       .sesion { font-size: 0.75rem; color: var(--suave); }
       .rapidos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; }
       .rapidos span { font-size: 0.8rem; color: var(--suave); margin-right: 4px; }
@@ -110,7 +111,10 @@
           <h1>Asistente de Órdenes de Compra — Periferia IT (Reto 03)</h1>
           <div class="sesion" id="sesion"></div>
         </div>
-        <button id="nueva">Nueva sesión</button>
+        <div class="acciones">
+          <button id="reiniciar">Reiniciar datos de demo</button>
+          <button id="nueva">Nueva sesión</button>
+        </div>
       </div>
       <div class="rapidos" id="rapidos"><span>Casos de prueba:</span></div>
     </header>
@@ -305,6 +309,24 @@
           enviar(entrada.value)
         }
       })
+      async function reiniciarDatos() {
+        if (ocupado) return
+        const seguro = confirm("Esto borra todas las OC creadas, el registro de control y el log de la demo (carpeta out/), y abre una sesión nueva. ¿Continuar?")
+        if (!seguro) return
+        bloquear(true)
+        try {
+          const res = await fetch("/api/reset", { method: "POST" })
+          if (!res.ok) return agregarError(await leerError(res))
+          const cuerpo = await res.json()
+          iniciarSesion()
+          agregarAgente({ reply: cuerpo.mensaje, toolCalls: [], needsConfirmation: false })
+        } catch {
+          agregarError("No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.")
+        } finally {
+          bloquear(false)
+        }
+      }
+      document.getElementById("reiniciar").addEventListener("click", reiniciarDatos)
       document.getElementById("nueva").addEventListener("click", () => {
         if (!ocupado) iniciarSesion()
       })

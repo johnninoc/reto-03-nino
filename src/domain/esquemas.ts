@@ -120,6 +120,7 @@ export type Validacion = {
   apta: boolean
   bloqueos: Hallazgo[]
   confirmaciones: Hallazgo[]
+  reglas_cumplidas: string[] // códigos RC evaluados sin bloqueo ni confirmación
   derivados: Derivados
   retroactiva: boolean
 }

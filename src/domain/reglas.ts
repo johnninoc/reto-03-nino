@@ -113,6 +113,25 @@ export function rc9_aprobacionDespuesDeSolicitud(ctx: Contexto): Hallazgo | null
 
 // ---------- Evaluación completa ----------
 
+const TODAS_LAS_REGLAS = ["RC1", "RC2", "RC3", "RC4", "RC5", "RC6", "RC7", "RC8", "RC9", "RC10"]
+
+/** Reglas que no se pudieron evaluar porque dependen de un dato que ya falló en otra regla. */
+function reglasNoEvaluadas(ctx: Contexto): string[] {
+  const { solicitud, aprobacion } = ctx.paquete
+  const noEvaluadas: string[] = []
+  if (!aprobadorDelCentro(ctx)) noEvaluadas.push("RC3") // sin aprobador válido (RC2)
+  if (!solicitud.indicador_iva && !ctx.proveedor) noEvaluadas.push("RC6") // sin proveedor (RC1)
+  if (!solicitud.condiciones_pago && !ctx.proveedor) noEvaluadas.push("RC7") // sin proveedor (RC1)
+  if (!aprobacion) noEvaluadas.push("RC9") // sin aprobación (RC2)
+  return noEvaluadas
+}
+
+/** Reglas evaluadas que no generaron bloqueo ni confirmación. */
+function reglasCumplidas(ctx: Contexto, hallazgos: Hallazgo[]): string[] {
+  const descartadas = new Set([...hallazgos.map((h) => h.codigo), ...reglasNoEvaluadas(ctx)])
+  return TODAS_LAS_REGLAS.filter((codigo) => !descartadas.has(codigo))
+}
+
 function sinNulos(lista: Array<Hallazgo | null>): Hallazgo[] {
   return lista.filter((h): h is Hallazgo => h !== null)
 }
@@ -135,5 +154,12 @@ export function evaluarReglas(paquete: Paquete, maestros: Maestros): Validacion 
   if (iva.derivado) derivados.indicador_iva = iva.derivado
   if (condiciones) derivados.condiciones_pago = condiciones
 
-  return { apta: bloqueos.length === 0, bloqueos, confirmaciones, derivados, retroactiva: retroactiva !== null }
+  return {
+    apta: bloqueos.length === 0,
+    bloqueos,
+    confirmaciones,
+    reglas_cumplidas: reglasCumplidas(ctx, [...bloqueos, ...confirmaciones]),
+    derivados,
+    retroactiva: retroactiva !== null,
+  }
 }

@@ -1,8 +1,9 @@
-import { readFileSync } from "node:fs"
+import { readFileSync, rmSync } from "node:fs"
 import path from "node:path"
 import { z } from "zod"
 import { nuevaSesion, procesarTurno } from "./agent/loop.ts"
 import type { ConfigAgente, Sesion } from "./agent/loop.ts"
+import { carpetaSalida } from "./domain/rutas.ts"
 import { AnthropicAdapter } from "./llm/anthropic.ts"
 
 const RAIZ = path.join(import.meta.dir, "..")
@@ -73,6 +74,17 @@ async function chat(req: Request): Promise<Response> {
   }
 }
 
+/** Borra solo la carpeta out/ (control, log, SAP simulado y evidencias). No toca fixtures ni sesiones. */
+function reiniciarDatos(): Response {
+  if (ocupadas.size > 0) return errorJson("Hay un mensaje en proceso. Espera a que termine y vuelve a intentar.", 409)
+  try {
+    rmSync(carpetaSalida(RAIZ), { recursive: true, force: true })
+    return Response.json({ ok: true, mensaje: "Datos de demo reiniciados: se borró la carpeta out/." })
+  } catch {
+    return errorJson("No se pudieron borrar los datos de demo. Intenta de nuevo.", 500)
+  }
+}
+
 function historial(id: string): Response {
   const sesion = sesiones.get(id)
   if (!sesion) return errorJson(`No existe la sesión "${id}".`, 404)
@@ -87,6 +99,7 @@ const servidor = Bun.serve({
     "/": () => new Response(Bun.file(path.join(RAIZ, "web", "index.html"))),
     "/api/health": () => Response.json({ ok: true, provider: llm.proveedor, model: llm.modelo }),
     "/api/chat": { POST: chat },
+    "/api/reset": { POST: reiniciarDatos },
     "/api/sessions/:id": (req) => historial(req.params.id),
   },
   fetch: () => errorJson("Ruta no encontrada.", 404),

@@ -55,3 +55,7 @@
 - El contenedor corre con el usuario sin privilegios `bun` de la imagen oficial; `out/` se crea con permisos de ese usuario.
 - `bun install --production --frozen-lockfile` en Docker: solo instala zod y @anthropic-ai/sdk (bun-types y typescript son de desarrollo) y falla si el lockfile no coincide.
 - El servidor escucha siempre en `0.0.0.0` y en el puerto de `PORT` (Render lo define).
+- `reglas_cumplidas` lista las reglas evaluadas que no generaron bloqueo ni confirmación. Una regla que no se pudo evaluar porque depende de otra que falló (RC3 sin aprobador válido; RC6/RC7 sin proveedor; RC9 sin aprobación) no aparece ni como cumplida ni como fallida. RC7 con valor derivado cuenta como cumplida, porque solo informa.
+- `oc_crear` devuelve siempre `ya_existia` y `mensaje`; `ya_existia` es igual a `idempotente` y se agrega para que el mensaje al usuario sea claro.
+- `POST /api/reset` borra solo `out/` (no toca `fixtures/` ni las sesiones en memoria) y se niega con HTTP 409 si hay un mensaje en proceso. No pide autenticación: es una ayuda para la demo pública.
+- El botón "Reiniciar datos de demo" pide confirmación con `confirm()`, y si el reinicio funciona abre una sesión nueva en el navegador.
