@@ -37,7 +37,7 @@
 - La interfaz `LlmAdapter.enviar(mensajes, herramientas)` recibe el system prompt como un mensaje con rol "sistema"; cada proveedor lo ubica donde corresponda.
 - Los bloques propios del proveedor (por ejemplo, el razonamiento del modelo) se guardan como bloques "opacos" y se reenvían sin cambios, porque la API los exige en el ciclo de herramientas.
 - Timeout de 60 s por llamada al modelo y sin reintentos automáticos (`maxRetries: 0`), para que 60 s sea de verdad el tiempo máximo de espera.
-- Tokens por sesión = entrada (incluida la caché) + salida de cada llamada al modelo. Se revisa al inicio del turno y antes de cada iteración; al superar el tope, la sesión ya no acepta mensajes.
+- Tokens por sesión = entrada + 10 % de lo leído de la caché del prompt + salida, porque la lectura de caché cuesta ~10 % de la entrada normal (la escritura en caché se cuenta al 100 %). Así el tope refleja el gasto real. Se revisa al inicio del turno y antes de cada iteración; al superar el tope, la sesión ya no acepta mensajes.
 - Una confirmación es un mensaje que contiene alguna de las palabras sí/si, confirmo, confirmado, adelante, procede, ok o dale (sin importar mayúsculas ni tildes) y no contiene la palabra "no".
 - Si la salvaguarda fuerza `confirmado=false` y el caso no tenía confirmaciones pendientes, la OC se crea igual: un caso limpio no necesita confirmación.
 - `needsConfirmation` = en el turno, `oc_validar` devolvió un caso apto con confirmaciones u `oc_crear` respondió "requiere confirmación", y no se creó ninguna OC.

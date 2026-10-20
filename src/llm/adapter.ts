@@ -25,7 +25,7 @@ export type MotivoFin = "fin_turno" | "herramientas" | "limite_tokens" | "rechaz
 export type RespuestaLlm = {
   contenido: Bloque[]
   motivo: MotivoFin
-  uso: { entrada: number; salida: number }
+  uso: { entrada: number; entradaCache: number; salida: number } // entradaCache = tokens leídos de la caché del prompt
 }
 
 /** Error del proveedor con un mensaje en español apto para mostrar al usuario. */

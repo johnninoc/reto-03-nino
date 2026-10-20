@@ -54,7 +54,7 @@ async function correrCiclo(sesion: Sesion, texto: string, config: ConfigAgente):
     } catch (error) {
       return cerrar(turno, error instanceof ErrorLlm ? error.message : "Ocurrió un error inesperado al consultar el modelo. Intenta de nuevo.")
     }
-    sesion.tokens += respuesta.uso.entrada + respuesta.uso.salida
+    sesion.tokens += tokensConsumidos(respuesta.uso)
     sesion.mensajes.push({ rol: "asistente", contenido: respuesta.contenido })
 
     const llamadas = respuesta.contenido.filter((b): b is BloqueLlamada => b.tipo === "llamada")
@@ -77,6 +77,13 @@ async function ejecutarTodas(llamadas: BloqueLlamada[], turno: Turno, sessionId:
     resultados.push({ tipo: "resultado", idLlamada: llamada.id, contenido: JSON.stringify(respuesta), esError: !respuesta.ok })
   }
   return resultados
+}
+
+/** Lo leído de la caché cuesta ~10 % de la entrada normal, así que cuenta al 10 % para el tope de la sesión. */
+const FACTOR_CACHE = 0.1
+
+function tokensConsumidos(uso: RespuestaLlm["uso"]): number {
+  return Math.round(uso.entrada + uso.entradaCache * FACTOR_CACHE + uso.salida)
 }
 
 function cerrar(turno: Turno, reply: string): ResultadoTurno {

@@ -87,8 +87,8 @@ function motivoDe(motivo: Anthropic.StopReason | null): MotivoFin {
 }
 
 function usoDe(uso: Anthropic.Usage): RespuestaLlm["uso"] {
-  const entrada = uso.input_tokens + (uso.cache_creation_input_tokens ?? 0) + (uso.cache_read_input_tokens ?? 0)
-  return { entrada, salida: uso.output_tokens }
+  const entrada = uso.input_tokens + (uso.cache_creation_input_tokens ?? 0)
+  return { entrada, entradaCache: uso.cache_read_input_tokens ?? 0, salida: uso.output_tokens }
 }
 
 /** Traduce el error del SDK a un mensaje en español. Nunca incluye la clave ni el detalle crudo del proveedor. */
